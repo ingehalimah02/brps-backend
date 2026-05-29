@@ -132,7 +132,18 @@ npm start
 
 ### 🔒 Protected Routes (Requires Header `Authorization: Bearer <access_token>`)
 
-#### 1. Retrieve Current User Profile
+#### 1. Sign Out (Logout)
+- **Method**: `POST`
+- **URL**: `http://localhost:5000/api/auth/logout`
+- **Response (200 OK)**:
+  ```json
+  {
+    "success": true,
+    "message": "Signed out successfully from all active sessions."
+  }
+  ```
+
+#### 2. Retrieve Current User Profile
 - **Method**: `GET`
 - **URL**: `http://localhost:5000/api/users/profile`
 

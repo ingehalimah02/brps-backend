@@ -184,7 +184,39 @@ async function signIn(req, res) {
   }
 }
 
+/**
+ * Handles user sign out by globally invalidating all their sessions via Supabase Auth Admin.
+ */
+async function signOut(req, res) {
+  try {
+    const userId = req.user.id;
+
+    // Globally sign out the user from all active sessions
+    const { error } = await supabaseAdmin.auth.admin.signOut(userId);
+
+    if (error) {
+      return res.status(400).json({
+        success: false,
+        message: 'Sign out failed',
+        error: error.message
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: 'Signed out successfully from all active sessions.'
+    });
+  } catch (error) {
+    console.error('Signout controller error:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Internal server error during sign out'
+    });
+  }
+}
+
 module.exports = {
   signUp,
-  signIn
+  signIn,
+  signOut
 };
