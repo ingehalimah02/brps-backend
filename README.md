@@ -1,4 +1,4 @@
-# Burn Risk Prediction System - Express.js Backend with Supabase Integration
+# Burnout Risk Prediction System - Express.js Backend with Supabase Integration
 
 This project is a robust, custom Express.js backend fully integrated with Supabase for user registration (Sign Up), authentication (Sign In), and profile updates.
 

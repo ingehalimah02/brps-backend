@@ -19,7 +19,7 @@ app.use(morgan('dev')); // HTTP request logging
 app.get('/health', (req, res) => {
   res.status(200).json({
     success: true,
-    message: 'Burn Risk Prediction System Backend API is active',
+    message: 'Burnout Risk Prediction System Backend API is active',
     timestamp: new Date().toISOString()
   });
 });
