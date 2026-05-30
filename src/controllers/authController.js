@@ -189,10 +189,10 @@ async function signIn(req, res) {
  */
 async function signOut(req, res) {
   try {
-    const userId = req.user.id;
+    const token = req.token;
 
-    // Globally sign out the user from all active sessions
-    const { error } = await supabaseAdmin.auth.admin.signOut(userId);
+    // Globally sign out the user from all active sessions using their JWT
+    const { error } = await supabaseAdmin.auth.admin.signOut(token);
 
     if (error) {
       return res.status(400).json({

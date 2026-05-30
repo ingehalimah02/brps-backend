@@ -27,8 +27,9 @@ async function authenticateUser(req, res, next) {
       });
     }
 
-    // Attach user information to request object
+    // Attach user and token information to request object
     req.user = user;
+    req.token = token;
     next();
   } catch (error) {
     console.error('Authentication Middleware Error:', error);
