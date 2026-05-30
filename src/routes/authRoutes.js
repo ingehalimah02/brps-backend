@@ -13,4 +13,7 @@ router.post('/signin', authController.signIn);
 // POST /api/auth/logout - Sign out user and invalidate sessions
 router.post('/logout', authenticateUser, authController.signOut);
 
+// PUT /api/auth/update-password - Update user password (requires authentication)
+router.put('/update-password', authenticateUser, authController.updatePassword);
+
 module.exports = router;

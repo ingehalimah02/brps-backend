@@ -215,8 +215,76 @@ async function signOut(req, res) {
   }
 }
 
+/**
+ * Handles updating the authenticated user's password.
+ * Requires verification of their old password before updating.
+ */
+async function updatePassword(req, res) {
+  const { old_password, new_password } = req.body;
+  const email = req.user.email;
+
+  if (!old_password || !new_password) {
+    return res.status(400).json({
+      success: false,
+      message: 'Both old password and new password are required'
+    });
+  }
+
+  if (new_password.length < 6) {
+    return res.status(400).json({
+      success: false,
+      message: 'New password must be at least 6 characters long'
+    });
+  }
+
+  try {
+    // 1. Verify old password by attempting a sign in
+    const { error: signInError } = await supabase.auth.signInWithPassword({
+      email,
+      password: old_password
+    });
+
+    if (signInError) {
+      return res.status(400).json({
+        success: false,
+        message: 'Incorrect old password',
+        error: signInError.message
+      });
+    }
+
+    // 2. Update to new password using Supabase Auth Admin API
+    const { error: updateError } = await supabaseAdmin.auth.admin.updateUserById(
+      req.user.id,
+      { password: new_password }
+    );
+
+    if (updateError) {
+      console.error('Error updating password in Supabase:', updateError);
+      return res.status(500).json({
+        success: false,
+        message: 'Failed to update password',
+        error: updateError.message
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: 'Password updated successfully'
+    });
+
+  } catch (error) {
+    console.error('Update password controller error:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Internal server error during password update'
+    });
+  }
+}
+
 module.exports = {
   signUp,
   signIn,
-  signOut
+  signOut,
+  updatePassword
 };
+

@@ -143,11 +143,29 @@ npm start
   }
   ```
 
-#### 2. Retrieve Current User Profile
+#### 2. Update Password
+- **Method**: `PUT`
+- **URL**: `http://localhost:5000/api/auth/update-password`
+- **Request Body**:
+  ```json
+  {
+    "old_password": "securepassword123",
+    "new_password": "newsecurepassword456"
+  }
+  ```
+- **Response (200 OK)**:
+  ```json
+  {
+    "success": true,
+    "message": "Password updated successfully"
+  }
+  ```
+
+#### 3. Retrieve Current User Profile
 - **Method**: `GET`
 - **URL**: `http://localhost:5000/api/users/profile`
 
-#### 2. Edit User Profile
+#### 4. Edit User Profile
 - **Method**: `PUT`
 - **URL**: `http://localhost:5000/api/users/profile`
 - **Request Body**:
