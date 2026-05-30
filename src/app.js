@@ -5,6 +5,7 @@ require('dotenv').config();
 
 const authRoutes = require('./routes/authRoutes');
 const userRoutes = require('./routes/userRoutes');
+const assessmentRoutes = require('./routes/assessmentRoutes');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -26,6 +27,7 @@ app.get('/health', (req, res) => {
 // Route registration
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
+app.use('/api/burnout-assessments', assessmentRoutes);
 
 // 404 Route handler
 app.use((req, res, next) => {

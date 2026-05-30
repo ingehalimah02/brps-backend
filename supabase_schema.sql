@@ -46,3 +46,25 @@ EXECUTE FUNCTION update_updated_at_column();
 -- Since the Express backend will be interacting with Supabase using the Service Role Key 
 -- (which bypasses RLS), no explicit RLS policies are strictly required for backend-to-DB calls.
 -- However, if users query this table directly from frontends, they will need appropriate RLS policies.
+
+-- 4. Create burnout_assessments table
+CREATE TABLE IF NOT EXISTS public.burnout_assessments (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
+    stress_level INTEGER NOT NULL,
+    workload_level INTEGER NOT NULL,
+    work_life_balance INTEGER NOT NULL,
+    job_satisfacation INTEGER NOT NULL,
+    burnout_score DOUBLE PRECISION DEFAULT NULL,
+    burnout_label VARCHAR(100) DEFAULT NULL,
+    prediction_confidence TEXT DEFAULT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL
+);
+
+-- Trigger for updating the updated_at column on burnout_assessments
+CREATE OR REPLACE TRIGGER update_burnout_assessments_updated_at
+BEFORE UPDATE ON public.burnout_assessments
+FOR EACH ROW
+EXECUTE FUNCTION update_updated_at_column();
+
