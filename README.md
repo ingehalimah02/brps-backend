@@ -190,15 +190,14 @@ npm start
 
 ### 📊 Burnout Assessment Routes (Requires Header `Authorization: Bearer <access_token>`)
 
-These endpoints manage employee stress levels and evaluate potential burnout risks using a Machine Learning predictor model.
+These endpoints manage employee stress levels and evaluate potential burnout risks using a Machine Learning predictor model. **For maximum security and simplicity, the `user_id` is automatically inferred from the authenticated user's access token (`req.user.id`).** Users are prevented from reading, writing, or modifying other users' assessment data.
 
 #### 1. Create Assessment
 - **Method**: `POST`
 - **URL**: `http://localhost:5000/api/burnout-assessments`
-- **Request Body**:
+- **Request Body**: (Note that `user_id` is NOT required in the body; it is resolved automatically from the login token)
   ```json
   {
-    "user_id": "supabase-uuid-here",
     "stress_level": 4,
     "workload_level": 3,
     "work_life_balance": 2,
@@ -212,7 +211,7 @@ These endpoints manage employee stress levels and evaluate potential burnout ris
     "message": "Assessment created successfully",
     "data": {
       "id": "assessment-uuid-here",
-      "user_id": "supabase-uuid-here",
+      "user_id": "supabase-uuid-of-logged-in-user",
       "stress_level": 4,
       "workload_level": 3,
       "work_life_balance": 2,
@@ -227,8 +226,9 @@ These endpoints manage employee stress levels and evaluate potential burnout ris
   ```
 
 #### 2. Get All Assessments
+Retrieves assessments belonging only to the currently logged-in user.
 - **Method**: `GET`
-- **URL**: `http://localhost:5000/api/burnout-assessments` (or `http://localhost:5000/api/burnout-assessments?user_id=supabase-uuid-here`)
+- **URL**: `http://localhost:5000/api/burnout-assessments`
 - **Response (200 OK)**:
   ```json
   {
@@ -236,15 +236,23 @@ These endpoints manage employee stress levels and evaluate potential burnout ris
     "data": [
       {
         "id": "assessment-uuid-here",
-        "user_id": "supabase-uuid-here",
+        "user_id": "supabase-uuid-of-logged-in-user",
         "stress_level": 4,
-        ...
+        "workload_level": 3,
+        "work_life_balance": 2,
+        "job_satisfacation": 3,
+        "burnout_score": null,
+        "burnout_label": null,
+        "prediction_confidence": null,
+        "created_at": "...",
+        "updated_at": "..."
       }
     ]
   }
   ```
 
 #### 3. Get Assessment by ID
+Retrieves a specific assessment by UUID, strictly ensuring it belongs to the logged-in user.
 - **Method**: `GET`
 - **URL**: `http://localhost:5000/api/burnout-assessments/:id`
 - **Response (200 OK)**:
@@ -253,7 +261,7 @@ These endpoints manage employee stress levels and evaluate potential burnout ris
     "success": true,
     "data": {
       "id": "assessment-uuid-here",
-      "user_id": "supabase-uuid-here",
+      "user_id": "supabase-uuid-of-logged-in-user",
       "stress_level": 4,
       ...
     }
@@ -261,9 +269,18 @@ These endpoints manage employee stress levels and evaluate potential burnout ris
   ```
 
 #### 4. Update Assessment
+Updates the assessment by UUID, strictly ensuring it belongs to the logged-in user.
 - **Method**: `PUT`
 - **URL**: `http://localhost:5000/api/burnout-assessments/:id`
-- **Request Body**: (Same payload as Create)
+- **Request Body**: (Same payload as Create, excluding `user_id`)
+  ```json
+  {
+    "stress_level": 4,
+    "workload_level": 3,
+    "work_life_balance": 3,
+    "job_satisfacation": 4
+  }
+  ```
 - **Response (200 OK)**:
   ```json
   {
@@ -271,13 +288,18 @@ These endpoints manage employee stress levels and evaluate potential burnout ris
     "message": "Assessment updated successfully",
     "data": {
       "id": "assessment-uuid-here",
+      "user_id": "supabase-uuid-of-logged-in-user",
       "stress_level": 4,
+      "workload_level": 3,
+      "work_life_balance": 3,
+      "job_satisfacation": 4,
       ...
     }
   }
   ```
 
 #### 5. Delete Assessment
+Deletes the assessment by UUID, strictly ensuring it belongs to the logged-in user.
 - **Method**: `DELETE`
 - **URL**: `http://localhost:5000/api/burnout-assessments/:id`
 - **Response (200 OK)**:
@@ -289,7 +311,7 @@ These endpoints manage employee stress levels and evaluate potential burnout ris
   ```
 
 #### 6. Predict Burnout Risk (ML Integration)
-Triggers the Machine Learning predictor, analyzes user workspace metrics coupled with the assessment levels, updates the assessment record with prediction indicators, and returns the detailed report.
+Triggers the Machine Learning predictor for the assessment UUID, strictly ensuring it belongs to the logged-in user. Analyzes the user's workspace profile metrics and the assessment levels, updates the database, and returns the detailed prediction report.
 - **Method**: `POST`
 - **URL**: `http://localhost:5000/api/burnout-assessments/:id/predict`
 - **Response (200 OK)**:
@@ -316,4 +338,3 @@ Triggers the Machine Learning predictor, analyzes user workspace metrics coupled
   }
   ```
   *(Note: This updates the database record fields `burnout_score` with `burnout_probability`, `burnout_label` with `risk_level`, and `prediction_confidence` with `hr_recommendation`)*
-

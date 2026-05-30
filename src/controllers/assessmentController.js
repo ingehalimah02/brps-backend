@@ -1,20 +1,10 @@
 const { supabaseAdmin } = require('../config/supabase');
 
 /**
- * Validates the parameters for a burnout assessment record.
+ * Validates the parameters for a burnout assessment record (excluding user_id, which is handled via token).
  */
 function validateAssessmentBody(body) {
-  const { user_id, stress_level, workload_level, work_life_balance, job_satisfacation } = body;
-
-  if (!user_id || typeof user_id !== 'string') {
-    return 'user_id is required and must be a valid UUID string';
-  }
-
-  // Regex to validate UUID format
-  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-  if (!uuidRegex.test(user_id)) {
-    return 'user_id must be a valid UUID';
-  }
+  const { stress_level, workload_level, work_life_balance, job_satisfacation } = body;
 
   const levels = { stress_level, workload_level, work_life_balance, job_satisfacation };
   for (const [key, value] of Object.entries(levels)) {
@@ -32,7 +22,7 @@ function validateAssessmentBody(body) {
 
 /**
  * POST /api/burnout-assessments
- * Create a new burnout assessment.
+ * Create a new burnout assessment. User ID is automatically inferred from the login session (access token).
  */
 async function createAssessment(req, res) {
   try {
@@ -44,7 +34,9 @@ async function createAssessment(req, res) {
       });
     }
 
-    const { user_id, stress_level, workload_level, work_life_balance, job_satisfacation } = req.body;
+    // Inferred automatically from authenticated token!
+    const user_id = req.user.id;
+    const { stress_level, workload_level, work_life_balance, job_satisfacation } = req.body;
 
     // Check if the user exists in the database
     const { data: user, error: userFetchError } = await supabaseAdmin
@@ -56,7 +48,7 @@ async function createAssessment(req, res) {
     if (userFetchError || !user) {
       return res.status(404).json({
         success: false,
-        message: 'Associated user not found in the users table'
+        message: 'Associated user profile not found. Please complete profile registration.'
       });
     }
 
@@ -99,19 +91,18 @@ async function createAssessment(req, res) {
 
 /**
  * GET /api/burnout-assessments
- * Retrieve all assessments (can filter by user_id query parameter).
+ * Retrieve assessments belonging to the logged-in user (inferred from access token).
  */
 async function getAllAssessments(req, res) {
   try {
-    const { user_id } = req.query;
+    // Strictly filter assessments to the authenticated user for data security
+    const user_id = req.user.id;
 
-    let query = supabaseAdmin.from('burnout_assessments').select('*');
-
-    if (user_id) {
-      query = query.eq('user_id', user_id);
-    }
-
-    const { data: assessments, error } = await query.order('created_at', { ascending: false });
+    const { data: assessments, error } = await supabaseAdmin
+      .from('burnout_assessments')
+      .select('*')
+      .eq('user_id', user_id)
+      .order('created_at', { ascending: false });
 
     if (error) {
       console.error('Error fetching assessments from database:', error);
@@ -138,11 +129,12 @@ async function getAllAssessments(req, res) {
 
 /**
  * GET /api/burnout-assessments/:id
- * Retrieve a specific assessment by UUID.
+ * Retrieve a specific assessment by UUID, ensuring it belongs to the logged-in user.
  */
 async function getAssessmentById(req, res) {
   try {
     const { id } = req.params;
+    const user_id = req.user.id;
 
     const { data: assessment, error } = await supabaseAdmin
       .from('burnout_assessments')
@@ -155,6 +147,14 @@ async function getAssessmentById(req, res) {
         success: false,
         message: 'Assessment not found',
         error: error ? error.message : null
+      });
+    }
+
+    // Security Check: Only allow users to view their own assessments
+    if (assessment.user_id !== user_id) {
+      return res.status(403).json({
+        success: false,
+        message: 'Access denied. You can only view your own assessments.'
       });
     }
 
@@ -174,11 +174,12 @@ async function getAssessmentById(req, res) {
 
 /**
  * PUT /api/burnout-assessments/:id
- * Update an existing assessment by UUID.
+ * Update an existing assessment by UUID, ensuring it belongs to the logged-in user.
  */
 async function updateAssessment(req, res) {
   try {
     const { id } = req.params;
+    const user_id = req.user.id;
 
     const validationError = validateAssessmentBody(req.body);
     if (validationError) {
@@ -188,33 +189,27 @@ async function updateAssessment(req, res) {
       });
     }
 
-    const { user_id, stress_level, workload_level, work_life_balance, job_satisfacation } = req.body;
+    const { stress_level, workload_level, work_life_balance, job_satisfacation } = req.body;
 
     // Check if the assessment exists
     const { data: existingAssessment, error: fetchError } = await supabaseAdmin
       .from('burnout_assessments')
-      .select('id')
+      .select('*')
       .eq('id', id)
       .single();
 
     if (fetchError || !existingAssessment) {
       return res.status(404).json({
         success: false,
-        message: 'Assessment not found to update'
+        message: 'Assessment not found'
       });
     }
 
-    // Verify user exists
-    const { data: user, error: userFetchError } = await supabaseAdmin
-      .from('users')
-      .select('id')
-      .eq('id', user_id)
-      .single();
-
-    if (userFetchError || !user) {
-      return res.status(404).json({
+    // Security Check: Only allow users to update their own assessments
+    if (existingAssessment.user_id !== user_id) {
+      return res.status(403).json({
         success: false,
-        message: 'Associated user not found in the users table'
+        message: 'Access denied. You can only update your own assessments.'
       });
     }
 
@@ -222,7 +217,6 @@ async function updateAssessment(req, res) {
     const { data: updatedAssessment, error: updateError } = await supabaseAdmin
       .from('burnout_assessments')
       .update({
-        user_id,
         stress_level: parseInt(stress_level, 10),
         workload_level: parseInt(workload_level, 10),
         work_life_balance: parseInt(work_life_balance, 10),
@@ -258,22 +252,31 @@ async function updateAssessment(req, res) {
 
 /**
  * DELETE /api/burnout-assessments/:id
- * Delete an assessment by UUID.
+ * Delete an assessment by UUID, ensuring it belongs to the logged-in user.
  */
 async function deleteAssessment(req, res) {
   try {
     const { id } = req.params;
+    const user_id = req.user.id;
 
     const { data: existingAssessment, error: fetchError } = await supabaseAdmin
       .from('burnout_assessments')
-      .select('id')
+      .select('*')
       .eq('id', id)
       .single();
 
     if (fetchError || !existingAssessment) {
       return res.status(404).json({
         success: false,
-        message: 'Assessment not found to delete'
+        message: 'Assessment not found'
+      });
+    }
+
+    // Security Check: Only allow users to delete their own assessments
+    if (existingAssessment.user_id !== user_id) {
+      return res.status(403).json({
+        success: false,
+        message: 'Access denied. You can only delete your own assessments.'
       });
     }
 
@@ -308,10 +311,12 @@ async function deleteAssessment(req, res) {
 /**
  * POST /api/burnout-assessments/:id/predict
  * Calls the external burnout prediction ML API and updates the assessment database record.
+ * Ensures the assessment belongs to the logged-in user.
  */
 async function predictBurnout(req, res) {
   try {
     const { id } = req.params;
+    const user_id = req.user.id;
 
     // 1. Fetch assessment data from database
     const { data: assessment, error: assessmentError } = await supabaseAdmin
@@ -325,6 +330,14 @@ async function predictBurnout(req, res) {
         success: false,
         message: 'Assessment not found',
         error: assessmentError ? assessmentError.message : null
+      });
+    }
+
+    // Security Check: Only allow users to trigger prediction for their own assessments
+    if (assessment.user_id !== user_id) {
+      return res.status(403).json({
+        success: false,
+        message: 'Access denied. You can only run predictions for your own assessments.'
       });
     }
 
