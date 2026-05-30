@@ -185,3 +185,135 @@ npm start
   }
   ```
   *(Note: Age is calculated automatically on update. Missing or invalid number types default to `0`)*
+
+---
+
+### 📊 Burnout Assessment Routes (Requires Header `Authorization: Bearer <access_token>`)
+
+These endpoints manage employee stress levels and evaluate potential burnout risks using a Machine Learning predictor model.
+
+#### 1. Create Assessment
+- **Method**: `POST`
+- **URL**: `http://localhost:5000/api/burnout-assessments`
+- **Request Body**:
+  ```json
+  {
+    "user_id": "supabase-uuid-here",
+    "stress_level": 4,
+    "workload_level": 3,
+    "work_life_balance": 2,
+    "job_satisfacation": 3
+  }
+  ```
+- **Response (201 Created)**:
+  ```json
+  {
+    "success": true,
+    "message": "Assessment created successfully",
+    "data": {
+      "id": "assessment-uuid-here",
+      "user_id": "supabase-uuid-here",
+      "stress_level": 4,
+      "workload_level": 3,
+      "work_life_balance": 2,
+      "job_satisfacation": 3,
+      "burnout_score": null,
+      "burnout_label": null,
+      "prediction_confidence": null,
+      "created_at": "...",
+      "updated_at": "..."
+    }
+  }
+  ```
+
+#### 2. Get All Assessments
+- **Method**: `GET`
+- **URL**: `http://localhost:5000/api/burnout-assessments` (or `http://localhost:5000/api/burnout-assessments?user_id=supabase-uuid-here`)
+- **Response (200 OK)**:
+  ```json
+  {
+    "success": true,
+    "data": [
+      {
+        "id": "assessment-uuid-here",
+        "user_id": "supabase-uuid-here",
+        "stress_level": 4,
+        ...
+      }
+    ]
+  }
+  ```
+
+#### 3. Get Assessment by ID
+- **Method**: `GET`
+- **URL**: `http://localhost:5000/api/burnout-assessments/:id`
+- **Response (200 OK)**:
+  ```json
+  {
+    "success": true,
+    "data": {
+      "id": "assessment-uuid-here",
+      "user_id": "supabase-uuid-here",
+      "stress_level": 4,
+      ...
+    }
+  }
+  ```
+
+#### 4. Update Assessment
+- **Method**: `PUT`
+- **URL**: `http://localhost:5000/api/burnout-assessments/:id`
+- **Request Body**: (Same payload as Create)
+- **Response (200 OK)**:
+  ```json
+  {
+    "success": true,
+    "message": "Assessment updated successfully",
+    "data": {
+      "id": "assessment-uuid-here",
+      "stress_level": 4,
+      ...
+    }
+  }
+  ```
+
+#### 5. Delete Assessment
+- **Method**: `DELETE`
+- **URL**: `http://localhost:5000/api/burnout-assessments/:id`
+- **Response (200 OK)**:
+  ```json
+  {
+    "success": true,
+    "message": "Assessment deleted successfully"
+  }
+  ```
+
+#### 6. Predict Burnout Risk (ML Integration)
+Triggers the Machine Learning predictor, analyzes user workspace metrics coupled with the assessment levels, updates the assessment record with prediction indicators, and returns the detailed report.
+- **Method**: `POST`
+- **URL**: `http://localhost:5000/api/burnout-assessments/:id/predict`
+- **Response (200 OK)**:
+  ```json
+  {
+    "status_code": 200,
+    "success": true,
+    "data": {
+      "burnout_probability": 0.9998857378959656,
+      "burnout_probability_percent": "100.0%",
+      "risk_level": "Tinggi",
+      "hr_recommendation": "Evaluasi kondisi kerja karyawan secara berkala untuk mencegah stres berlebih.",
+      "ui_theme_color": "#F39C12",
+      "ai_wellness_recommendations": [
+        "Lakukan mindfulness atau breathing exercise 10–15 menit setiap hari.",
+        "Kurangi multitasking berlebihan agar fokus kerja lebih stabil.",
+        "Kurangi lembur dan prioritaskan work-life balance.",
+        "Hindari bekerja tanpa jeda terlalu lama.",
+        "Diskusikan hambatan kerja dengan HR atau atasan."
+      ]
+    },
+    "assessment_id": "assessment-uuid-here",
+    "burnout_assessment_uuid": "assessment-uuid-here"
+  }
+  ```
+  *(Note: This updates the database record fields `burnout_score` with `burnout_probability`, `burnout_label` with `risk_level`, and `prediction_confidence` with `hr_recommendation`)*
+
